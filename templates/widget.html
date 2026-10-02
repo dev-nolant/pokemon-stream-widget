@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Widget</title>
+    <style>
+      html, body {
+          margin: 0;
+          padding: 0;
+          background: transparent;
+          overflow: hidden;
+      }
+      body {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+      }
+      img {
+          width: 200px;
+          height: 200px;
+          object-fit: contain;
+          image-rendering: -moz-crisp-edges;
+          image-rendering: -o-crisp-edges;
+          image-rendering: -webkit-optimize-contrast;
+          image-rendering: pixelated;
+          -ms-interpolation-mode: nearest-neighbor;
+      }
+      audio {
+          display: none;
+      }
+      /* Death animation: simulate Pokémon "dying" (fading, shrinking, rotating) */
+      .death-animation {
+          animation: deathEffect 0.5s forwards;
+      }
+      @keyframes deathEffect {
+          0% { opacity: 1; transform: scale(1) rotate(0deg); }
+          50% { opacity: 0.2; transform: scale(0.8) rotate(10deg); }
+          100% { opacity: 0; transform: scale(0.5) rotate(20deg); }
+      }
+      /* Revival animation: simulate the new Pokémon "coming to life" */
+      .revival-animation {
+          animation: revivalEffect 0.5s forwards;
+      }
+      @keyframes revivalEffect {
+          0% { opacity: 0; transform: scale(0.5) rotate(20deg); }
+          50% { opacity: 0.2; transform: scale(0.8) rotate(10deg); }
+          100% { opacity: 1; transform: scale(1) rotate(0deg); }
+      }
+    </style>
+  </head>
+  <body>
+    <img id="sprite" src="{{ sprite_url }}" alt="Widget">
+    <audio id="cry"></audio>
+    
+    <!-- Load Socket.IO -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+      var socket = io();
+      var sprite = document.getElementById("sprite");
+      var cryAudio = document.getElementById("cry");
+
+      socket.on('connect', function() {
+          console.log("Socket.IO connected!");
+          socket.emit('join', { widget_uuid: "{{ widget_uuid }}" });
+      });
+
+      socket.on('pokemon_update', function(data) {
+          console.log("Received update:", data);
+
+          // Play the Pokémon cry immediately.
+          var cryUrl = "https://play.pokemonshowdown.com/audio/cries/" + data.pokemon + ".mp3";
+          cryAudio.src = cryUrl;
+          cryAudio.play().catch(function(e) {
+              console.error("Audio play failed:", e);
+          });
+
+          // Start the "death" animation on the current sprite.
+          sprite.classList.remove("revival-animation");
+          sprite.classList.add("death-animation");
+
+          // Listen for the end of the death animation.
+          sprite.addEventListener("animationend", function handler(e) {
+              if (e.animationName === "deathEffect") {
+                  // Remove the death class.
+                  sprite.classList.remove("death-animation");
+                  // Update the sprite source with a cache-buster.
+                  var newSpriteUrl = data.sprite_url + "?cb=" + new Date().getTime();
+                  sprite.src = newSpriteUrl;
+                  // Trigger the revival animation.
+                  sprite.classList.add("revival-animation");
+                  // Remove this handler so it doesn't run again.
+                  sprite.removeEventListener("animationend", handler);
+              }
+          });
+      });
+
+      socket.on('disconnect', function() {
+          console.log("Socket.IO disconnected.");
+      });
+    </script>
+  </body>
+</html>

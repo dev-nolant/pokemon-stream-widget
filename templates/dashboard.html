@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-md-8 offset-md-2">
+    <div class="card p-4 mb-4">
+      <h2 class="card-title">Dashboard</h2>
+      <p class="card-text"><strong>Welcome, {{ current_user.username }}!</strong></p>
+      <p class="card-text">YouTube Username: <strong>{{ current_user.youtube }}</strong></p>
+      <p class="card-text">Current Pokémon: <strong>{{ current_user.pokemon }}</strong>
+         <em>({{ "Shiny" if current_user.shiny else "Normal" }})</em>
+      </p>
+      <div class="d-flex justify-content-between">
+        <a href="{{ url_for('widget', widget_uuid=current_user.widget_uuid) }}" target="_blank" class="btn btn-success">View Your Widget</a>
+        <button id="copyLinkBtn" class="btn btn-outline-secondary">Copy Widget Link</button>
+      </div>
+    </div>
+    <div class="text-center">
+      <a href="{{ url_for('edit') }}" class="btn btn-warning me-2">Edit Profile</a>
+      <a href="{{ url_for('logout') }}" class="btn btn-secondary">Logout</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById("copyLinkBtn").addEventListener("click", function() {
+  var widgetUrl = "{{ url_for('widget', widget_uuid=current_user.widget_uuid, _external=True) }}";
+  navigator.clipboard.writeText(widgetUrl).then(function() {
+    alert("Widget link copied to clipboard:\n" + widgetUrl);
+  }, function(err) {
+    alert("Failed to copy widget link.");
+  });
+});
+</script>
+{% endblock %}
